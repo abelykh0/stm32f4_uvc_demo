@@ -67,11 +67,11 @@ extern "C" {
 #endif /* UVC_CAM_FPS_FS */
 
 #ifndef UVC_CAM_FPS_HS
-#define UVC_CAM_FPS_HS                                5U
+#define UVC_CAM_FPS_HS                                8U
 #endif /* UVC_CAM_FPS_HS */
 
 #ifndef UVC_PACKET_SIZE
-#define UVC_PACKET_SIZE                               512U
+#define UVC_PACKET_SIZE                               (unsigned int)(768+2) //128+130
 #endif /* UVC_PACKET_SIZE */
 
 #ifndef UVC_MAX_FRAME_SIZE

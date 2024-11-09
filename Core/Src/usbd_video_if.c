@@ -19,6 +19,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_video_if.h"
+#include "test_pic1.h"
 
 /* Include you image binary file here
     Binary image template shall provide:
@@ -197,14 +198,63 @@ static int8_t VIDEO_Itf_Control(uint8_t cmd, uint8_t *pbuf, uint16_t length)
   * @brief  TEMPLATE_Data
   *         Manage the UVC data packets
   * @param  pbuf: pointer to the buffer data to be filled
-  * @param  psize: pointer tot he current packet size to be filled
+  * @param  psize: pointer to the current packet size to be filled
   * @param  pcktidx: pointer to the current packet index in the current image
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
   */
 static int8_t VIDEO_Itf_Data(uint8_t **pbuf, uint16_t *psize, uint16_t *pcktidx)
 {
+	  const uint8_t *ImagePtr = nv12_picture;
+	  uint32_t packet_count = sizeof(nv12_picture) / ((UVC_PACKET_SIZE - (UVC_HEADER_PACKET_CNT * 2U)));
+	  uint32_t packet_remainder = sizeof(nv12_picture) % ((UVC_PACKET_SIZE - (UVC_HEADER_PACKET_CNT * 2U)));
+	  static uint8_t packet_index = 0U;
 
-  return (0);
+	  /* Check if end of current image has been reached */
+	  if (packet_index < packet_count)
+	  {
+	    /* Set the current packet size */
+	    *psize = (uint16_t)UVC_PACKET_SIZE;
+
+	    /* Get the pointer to the next packet to be transmitted */
+	    *pbuf = (uint8_t *)(*ImagePtr + \
+	                        (packet_index * ((uint16_t)(UVC_PACKET_SIZE - (UVC_HEADER_PACKET_CNT * 2U)))));
+	  }
+	  else if ((packet_index == packet_count))
+	  {
+	    if (packet_remainder != 0U)
+	    {
+	      /* Get the pointer to the next packet to be transmitted */
+	      *pbuf = (uint8_t *)(*ImagePtr + \
+	                          (packet_index * ((uint16_t)(UVC_PACKET_SIZE - (UVC_HEADER_PACKET_CNT * 2U)))));
+
+	      /* Set the current packet size */
+	      *psize = (uint16_t)(packet_remainder + (UVC_HEADER_PACKET_CNT * 2U));
+	    }
+	    else
+	    {
+	      packet_index++;
+
+	      /* New image to be started, send only the packet header */
+	      *psize = 2;
+	    }
+	  }
+	  else
+	  {
+	    /* New image to be started, send only the packet header */
+	    *psize = 2;
+	  }
+
+	  /* Update the packet index */
+	  *pcktidx = packet_index;
+
+	  /* Increment the packet count and check if it reached the end of current image buffer */
+	  if (packet_index++ >= (packet_count + 1U))
+	  {
+	    /* Reset the packet count to zero */
+	    packet_index = 0U;
+	  }
+
+	return USBD_OK;
 }
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */

@@ -612,6 +612,8 @@ static uint8_t USBD_VIDEO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   uint8_t i = 0U;
   uint32_t RemainData, DataOffset = 0U;
 
+  USBD_LL_FlushEP(pdev, UVC_IN_EP);//very important
+
   /* Check if the Streaming has already been started */
   if (hVIDEO->uvc_state == UVC_PLAY_STATUS_STREAMING)
   {
