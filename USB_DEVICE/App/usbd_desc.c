@@ -64,7 +64,7 @@
 
 #define USBD_VID     0xC251
 #define USBD_LANGID_STRING     1033
-#define USBD_MANUFACTURER_STRING     "STMicroelectronics"
+#define USBD_MANUFACTURER_STRING     "CITIZEN"
 #define USBD_PID_FS     0x1706
 #define USBD_PRODUCT_STRING_FS     "STM32 Video Demo"
 #define USBD_CONFIGURATION_STRING_FS     "Video Config"
@@ -322,6 +322,9 @@ uint8_t * USBD_FS_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
    * ID */
   Get_SerialNum();
   /* USER CODE BEGIN USBD_FS_SerialStrDescriptor */
+  // We want specific serial #
+  IntToUnicode(0x00000000, &USBD_StringSerial[2], 8);
+  IntToUnicode(0x034F0000, &USBD_StringSerial[18], 4);
 
   /* USER CODE END USBD_FS_SerialStrDescriptor */
   return (uint8_t *) USBD_StringSerial;

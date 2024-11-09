@@ -21,7 +21,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "usbd_core.h"
+#include "usbd_desc.h"
+#include "usbd_video_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,14 +44,14 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+extern USBD_HandleTypeDef hUsbDeviceFS;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
-
+static void USB_DEVICE_Init(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -87,7 +89,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-
+  USB_DEVICE_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -95,12 +97,12 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
 	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_6);
 	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7);
 	  HAL_Delay(1000);
-
-    /* USER CODE BEGIN 3 */
-  }
+}
   /* USER CODE END 3 */
 }
 
@@ -180,7 +182,25 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void USB_DEVICE_Init(void)
+{
+	  if (USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS) != USBD_OK)
+	  {
+	    Error_Handler();
+	  }
+	  if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_VIDEO) != USBD_OK)
+	  {
+	    Error_Handler();
+	  }
+	  if (USBD_VIDEO_RegisterInterface(&hUsbDeviceFS, &USBD_VIDEO_fops_FS) != USBD_OK)
+	  {
+	    Error_Handler();
+	  }
+	  if (USBD_Start(&hUsbDeviceFS) != USBD_OK)
+	  {
+	    Error_Handler();
+	  }
+}
 /* USER CODE END 4 */
 
 /**
