@@ -73,7 +73,7 @@
   */
 
 /* USER CODE BEGIN PRIVATE_DEFINES */
-
+#define NO_HEADER_PACKET_SIZE (UVC_PACKET_SIZE - (UVC_HEADER_PACKET_CNT * 2U))
 /* USER CODE END PRIVATE_DEFINES */
 
 /**
@@ -205,19 +205,19 @@ static int8_t VIDEO_Itf_Control(uint8_t cmd, uint8_t *pbuf, uint16_t length)
 static int8_t VIDEO_Itf_Data(uint8_t **pbuf, uint16_t *psize, uint16_t *pcktidx)
 {
 	  const uint8_t *ImagePtr = nv12_picture;
-	  uint32_t packet_count = sizeof(nv12_picture) / ((UVC_PACKET_SIZE - (UVC_HEADER_PACKET_CNT * 2U)));
-	  uint32_t packet_remainder = sizeof(nv12_picture) % ((UVC_PACKET_SIZE - (UVC_HEADER_PACKET_CNT * 2U)));
+	  uint32_t packet_count = sizeof(nv12_picture) / NO_HEADER_PACKET_SIZE;
+	  uint32_t packet_remainder = sizeof(nv12_picture) % NO_HEADER_PACKET_SIZE;
 	  static uint8_t packet_index = 0U;
 
 	  /* Check if end of current image has been reached */
 	  if (packet_index < packet_count)
 	  {
 	    /* Set the current packet size */
-	    *psize = (uint16_t)UVC_PACKET_SIZE;
+	    *psize = (uint16_t)UVC_ISO_FS_MPS;
 
 	    /* Get the pointer to the next packet to be transmitted */
 	    *pbuf = (uint8_t *)(*ImagePtr + \
-	                        (packet_index * ((uint16_t)(UVC_PACKET_SIZE - (UVC_HEADER_PACKET_CNT * 2U)))));
+	                        (packet_index * (uint16_t)NO_HEADER_PACKET_SIZE));
 	  }
 	  else if ((packet_index == packet_count))
 	  {
@@ -225,7 +225,7 @@ static int8_t VIDEO_Itf_Data(uint8_t **pbuf, uint16_t *psize, uint16_t *pcktidx)
 	    {
 	      /* Get the pointer to the next packet to be transmitted */
 	      *pbuf = (uint8_t *)(*ImagePtr + \
-	                          (packet_index * ((uint16_t)(UVC_PACKET_SIZE - (UVC_HEADER_PACKET_CNT * 2U)))));
+	                          (packet_index * (uint16_t)NO_HEADER_PACKET_SIZE));
 
 	      /* Set the current packet size */
 	      *psize = (uint16_t)(packet_remainder + (UVC_HEADER_PACKET_CNT * 2U));
@@ -248,7 +248,8 @@ static int8_t VIDEO_Itf_Data(uint8_t **pbuf, uint16_t *psize, uint16_t *pcktidx)
 	  *pcktidx = packet_index;
 
 	  /* Increment the packet count and check if it reached the end of current image buffer */
-	  if (packet_index++ >= (packet_count + 1U))
+	  packet_index++;
+	  if (packet_index > packet_count)
 	  {
 	    /* Reset the packet count to zero */
 	    packet_index = 0U;

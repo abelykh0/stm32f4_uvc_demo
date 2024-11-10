@@ -28,6 +28,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include  "usbd_ioreq.h"
 #include  "usbd_def.h"
+#include "usbd_conf.h"
 
 /** @addtogroup STM32_USB_DEVICE_LIBRARY
   * @{
@@ -71,11 +72,11 @@ extern "C" {
 #endif /* UVC_CAM_FPS_HS */
 
 #ifndef UVC_PACKET_SIZE
-#define UVC_PACKET_SIZE                               (unsigned int)(768+2) //128+130
+#define UVC_PACKET_SIZE                               ((unsigned int)768)
 #endif /* UVC_PACKET_SIZE */
 
 #ifndef UVC_MAX_FRAME_SIZE
-#define UVC_MAX_FRAME_SIZE                            (UVC_WIDTH * UVC_HEIGHT * 16U / 2U)
+#define UVC_MAX_FRAME_SIZE                            (UVC_WIDTH * UVC_HEIGHT * 3U / 2U) // nv12
 #endif /* UVC_MAX_FRAME_SIZE */
 
 #ifndef UVC_COLOR_PRIMARIE
@@ -106,10 +107,10 @@ extern "C" {
 #define UVC_MIN_BIT_RATE(n)                           (UVC_WIDTH * UVC_HEIGHT * 16U * (n)) /* 16 bit */
 #define UVC_MAX_BIT_RATE(n)                           (UVC_WIDTH * UVC_HEIGHT * 16U * (n)) /* 16 bit */
 
-#define UVC_PACKETS_IN_FRAME(n)                       (UVC_MAX_FRAME_SIZE / (n))
+//#define UVC_PACKETS_IN_FRAME(n)                       (UVC_MAX_FRAME_SIZE / (n))
 
 #ifndef UVC_ISO_FS_MPS
-#define UVC_ISO_FS_MPS                                256U
+#define UVC_ISO_FS_MPS                                ((unsigned int)(768+2)) //128+130
 #endif
 
 #ifndef UVC_ISO_HS_MPS

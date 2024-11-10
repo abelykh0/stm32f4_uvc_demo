@@ -269,8 +269,8 @@ __ALIGN_BEGIN static uint8_t USBD_VIDEO_CfgDesc[UVC_CONFIG_DESC_SIZE] __ALIGN_EN
         CS_INTERFACE,       /* bDescriptorType */
         VS_FRAME_SUBTYPE,   /* bDescriptorSubType */
         0x01,               /* bFrameIndex */
-#ifdef USBD_UVC_FORMAT_UNCOMPRESSED
-        0x00, /* bmCapabilities: no till image capture */
+#ifndef USBD_UVC_FORMAT_UNCOMPRESSED
+        0x00, /* bmCapabilities: no still image capture */
 #else
         0x02, /* bmCapabilities: fixed frame rate supported */
 #endif
@@ -603,36 +603,89 @@ static uint8_t USBD_VIDEO_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *
   */
 static uint8_t USBD_VIDEO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-  USBD_VIDEO_HandleTypeDef *hVIDEO = (USBD_VIDEO_HandleTypeDef *)pdev->pClassData;
-  static uint8_t packet[UVC_PACKET_SIZE + (UVC_HEADER_PACKET_CNT * 2U)] = {0x00U};
+	  USBD_VIDEO_HandleTypeDef *hVIDEO = (USBD_VIDEO_HandleTypeDef *)pdev->pClassData;
+#define PACKETS_IN_FRAME 150
+#include "test_pic1.h"
+	  static uint16_t packets_cnt = 0xffff;
+	  static uint8_t header[2] = {2,0};//length + data
+	  // uint8_t* data_pointer;
+	  uint8_t packet[UVC_ISO_FS_MPS];
+	  uint16_t i;
+	  static uint32_t picture_pos;
+
+	  USBD_LL_FlushEP(pdev, UVC_IN_EP);//very important
+	  //DCD_EP_Flush(pdev,USB_ENDPOINT_IN(1));//very important
+
+	  packets_cnt++;
+	  if (packets_cnt>(PACKETS_IN_FRAME-1))
+	  {
+	    //start of new frame
+	    packets_cnt = 0;
+	    header[1]^= 1;//toggle bit0 every new frame
+	    picture_pos = 0;
+	  }
+
+	  packet[0] = header[0];
+	  packet[1] = header[1];
+
+	  for (i=2;i<UVC_ISO_FS_MPS;i++)
+	  {
+	    if ((packets_cnt < 10) && 0 /*&& (STM_EVAL_PBGetState(BUTTON_USER) != 0)*/) //react to button
+	    {
+	      packet[i] = 0xAA;
+	    }
+	    else
+	    {
+	      packet[i] = nv12_picture[picture_pos];
+	    }
+	    picture_pos++;
+	  }
+
+	  if (hVIDEO->uvc_state == UVC_PLAY_STATUS_STREAMING)
+	  {
+		  ///DCD_EP_Tx (pdev,USB_ENDPOINT_IN(1), (uint8_t*)&packet, (uint32_t)VIDEO_PACKET_SIZE);
+		    (void)USBD_LL_Transmit(pdev, (uint8_t)(epnum | UVC_REQ_READ_MASK),
+		                           (uint8_t *)&packet, (uint32_t)UVC_ISO_FS_MPS);
+
+	  }
+	  else
+	  {
+	    packets_cnt = 0xffff;
+	  }
+
+	  //STM_EVAL_LEDToggle(LED6);
+	  return USBD_OK;
+
+/*
+  static uint8_t packet[UVC_ISO_FS_MPS + (UVC_HEADER_PACKET_CNT * 2U)];
   static uint8_t *Pcktdata = packet;
   static uint16_t PcktIdx = 0U;
-  static uint16_t PcktSze = UVC_PACKET_SIZE;
+  static uint16_t PcktSze = UVC_ISO_FS_MPS;
   static uint8_t payload_header[2] = {0x02U, 0x00U};
   uint8_t i = 0U;
   uint32_t RemainData, DataOffset = 0U;
 
   USBD_LL_FlushEP(pdev, UVC_IN_EP);//very important
 
-  /* Check if the Streaming has already been started */
+  // Check if the Streaming has already been started
   if (hVIDEO->uvc_state == UVC_PLAY_STATUS_STREAMING)
   {
-    /* Get the current packet buffer, index and size from the application layer */
+    // Get the current packet buffer, index and size from the application layer
     ((USBD_VIDEO_ItfTypeDef *)pdev->pUserData[pdev->classId])->Data(&Pcktdata, &PcktSze, &PcktIdx);
 
-    /* Check if end of current image has been reached */
+    // Check if end of current image has been reached
     if (PcktSze > 2U)
     {
-      /* Check if this is the first packet in current image */
+      // Check if this is the first packet in current image
       if (PcktIdx == 0U)
       {
-        /* Set the packet start index */
+        // Set the packet start index
         payload_header[1] ^= 0x01U;
       }
 
       RemainData = PcktSze;
 
-      /* fill the Transmit buffer */
+      // fill the Transmit buffer
       while (RemainData > 0U)
       {
         packet[((DataOffset + 0U) * i)] = payload_header[0];
@@ -657,18 +710,18 @@ static uint8_t USBD_VIDEO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
     }
     else
     {
-      /* Add the packet header */
+      // Add the packet header
       packet[0] = payload_header[0];
       packet[1] = payload_header[1];
     }
 
-    /* Transmit the packet on Endpoint */
-    (void)USBD_LL_Transmit(pdev, (uint8_t)(epnum | 0x80U),
+    // Transmit the packet on Endpoint
+    (void)USBD_LL_Transmit(pdev, (uint8_t)(epnum | UVC_REQ_READ_MASK),
                            (uint8_t *)&packet, (uint32_t)PcktSze);
   }
 
-  /* Exit with no error code */
   return (uint8_t)USBD_OK;
+  */
 }
 
 /**
